@@ -5,63 +5,83 @@ import re
 
 app = Flask(__name__)
 
-# Regex pattern for detecting sold listings
-SOLD_PATTERN = re.compile(r"sorry[,!\s]*that ad is no longer available", re.I)
+# Sold message pattern (robust to spacing & punctuation)
+SOLD_PATTERN = re.compile(
+    r"sorry[,!\s]*that ad is no longer available",
+    re.IGNORECASE
+)
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
+}
+
 
 def extract_links(html):
-    """Extract all unique https:// links from pasted HTML/code."""
-    soup = BeautifulSoup(html, 'html.parser')
+    """Extract unique https:// links from pasted HTML"""
+    soup = BeautifulSoup(html, "html.parser")
     links = set()
-    for a in soup.find_all('a', href=True):
-        href = a['href'].strip()
+
+    for a in soup.find_all("a", href=True):
+        href = a["href"].strip()
         if href.startswith("https://"):
             links.add(href)
-    return links
+
+    return sorted(links)
+
 
 def check_links(links):
-    """Fetch each link and determine if it is valid or sold."""
-    valid_links = set()
-    invalid_links = set()
+    """Check which links are valid vs sold"""
+    valid_links = []
+    invalid_links = []
 
     for link in links:
         try:
-            response = requests.get(link, timeout=10)
+            response = requests.get(
+                link,
+                headers=HEADERS,
+                timeout=15
+            )
+
+            # Normalize page text (important!)
             page_text = " ".join(response.text.lower().split())
+
             if SOLD_PATTERN.search(page_text):
-                invalid_links.add(link)
+                invalid_links.append(link)
             else:
-                valid_links.add(link)
+                valid_links.append(link)
+
         except Exception:
-            # Retry once on transient error
-            try:
-                response = requests.get(link, timeout=10)
-                page_text = " ".join(response.text.lower().split())
-                if SOLD_PATTERN.search(page_text):
-                    invalid_links.add(link)
-                else:
-                    valid_links.add(link)
-            except:
-                invalid_links.add(link)
+            # Network errors → invalid
+            invalid_links.append(link)
 
-    return sorted(valid_links), sorted(invalid_links)
+    return valid_links, invalid_links
 
-@app.route('/')
+
+@app.route("/")
 def home():
-    return render_template('index.html')
+    return render_template("index.html")
 
-@app.route('/link-extractor', methods=['GET', 'POST'])
+
+@app.route("/link-extractor", methods=["GET", "POST"])
 def link_extractor():
     valid_links = []
     invalid_links = []
 
-    if request.method == 'POST':
-        input_text = request.form.get('input_text', '')
+    if request.method == "POST":
+        input_text = request.form.get("input_text", "")
         links = extract_links(input_text)
         valid_links, invalid_links = check_links(links)
 
-    return render_template('link-extractor.html',
-                           valid_links=valid_links,
-                           invalid_links=invalid_links)
+    return render_template(
+        "link-extractor.html",
+        valid_links=valid_links,
+        invalid_links=invalid_links
+    )
 
-if __name__ == '__main__':
-    app.run(debug=True)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

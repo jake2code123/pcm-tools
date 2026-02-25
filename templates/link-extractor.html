@@ -4,64 +4,130 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Link Extractor - PCM Tools</title>
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1 { margin-bottom: 20px; }
-    .container { display: flex; gap: 20px; }
-    .input-box { flex: 1; }
-    textarea { width: 100%; height: 500px; padding: 10px; font-family: monospace; font-size: 14px; box-sizing: border-box; }
-    .output-boxes { flex: 1; display: flex; flex-direction: column; gap: 20px; }
-    .output-box { flex: 1; border: 1px solid #ccc; padding: 10px; overflow-y: auto; background: #f9f9f9; white-space: pre-wrap; font-family: monospace; font-size: 14px; position: relative; }
-    button { margin-top: 10px; padding: 10px 15px; font-size: 16px; cursor: pointer; }
-    .copy-btn { position: absolute; top: 10px; right: 10px; font-size: 12px; padding: 5px 10px; cursor: pointer; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+
+    .input-box {
+      flex: 1;
+    }
+
+    textarea {
+      width: 100%;
+      height: 500px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    .output-boxes {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .output-box {
+      flex: 1;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background: #f9f9f9;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 14px;
+      position: relative;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 12px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
   </style>
 </head>
+
 <body>
   <h1>Link Extractor</h1>
+
   <div class="container">
+    <!-- INPUT -->
     <div class="input-box">
       <form method="POST" action="/link-extractor">
-        <textarea name="input_text" placeholder="Paste your HTML/code here...">{{ request.form.get('input_text', '') }}</textarea>
+        <textarea
+          name="input_text"
+          placeholder="Paste your HTML/code here..."
+        >{{ request.form.input_text or '' }}</textarea>
+
         <button type="submit">Extract Links</button>
       </form>
     </div>
 
+    <!-- OUTPUT -->
     <div class="output-boxes">
-      <div class="output-box" id="valid-box">
+
+      <!-- VALID -->
+      <div class="output-box">
         <h3>Valid Links (https://)</h3>
-        <button class="copy-btn" onclick="copyValid()">Copy Valid Links</button>
+        <button class="copy-btn" onclick="copyValid()">Copy</button>
+
         <div id="valid-links">
-          {% if valid_links %}
+          {% if valid_links and valid_links|length > 0 %}
             {% for link in valid_links %}
               {{ link }}<br>
             {% endfor %}
-          {% else %}
-            No valid links found.
           {% endif %}
         </div>
       </div>
-      <div class="output-box" id="invalid-box">
+
+      <!-- INVALID -->
+      <div class="output-box">
         <h3>Sold / Invalid Links</h3>
+
         <div id="invalid-links">
-          {% if invalid_links %}
+          {% if invalid_links and invalid_links|length > 0 %}
             {% for link in invalid_links %}
               {{ link }}<br>
             {% endfor %}
-          {% else %}
-            No invalid links found.
           {% endif %}
         </div>
       </div>
+
     </div>
   </div>
 
   <script>
     function copyValid() {
-      const text = document.getElementById('valid-links').innerText.trim();
-      if (!text) return alert("No valid links to copy.");
+      const text = document.getElementById("valid-links").innerText.trim();
+      if (!text) {
+        alert("No valid links to copy.");
+        return;
+      }
       navigator.clipboard.writeText(text)
-        .then(() => alert("Valid links copied to clipboard!"))
-        .catch(err => alert("Failed to copy: " + err));
+        .then(() => alert("Copied!"))
+        .catch(() => alert("Copy failed."));
     }
   </script>
 </body>
